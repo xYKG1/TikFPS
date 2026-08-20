@@ -1,4 +1,5 @@
 import os
+import threading
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -15,7 +16,7 @@ class TikFPSApp(App):
 
         self.label = Label(
             text="TikFPS: Select Video",
-            font_size='20sp',
+            font_size='18sp',
             halign='center',
             valign='middle'
         )
@@ -65,7 +66,47 @@ class TikFPSApp(App):
         if not self.selected_video:
             self.label.text = "Please select a video first!"
             return
-        self.label.text = f"Processing: {os.path.basename(self.selected_video)}"
+        
+        self.label.text = "Processing Video... Please wait"
+        threading.Thread(target=self.run_ffmpeg_command).start()
+
+    def run_ffmpeg_command(self):
+        dir_name = os.path.dirname(self.selected_video)
+        base_name = os.path.basename(self.selected_video)
+        name, ext = os.path.splitext(base_name)
+        
+        output_path = os.path.join(dir_name, f"{name}_double{ext}")
+
+        # نفس أمر FFmpeg الخاص بك لرباعية الإطارات / التوقيت
+        cmd = f'-y -i "{self.selected_video}" -c copy -bsf:v setts=ts=TS*2 -bsf:a setts=ts=TS*2 -video_track_timescale 90000 -brand isom "{output_path}"'
+
+        if platform == 'android':
+            try:
+                from jnius import autoclass
+                FFmpegKit = autoclass('com.arthenica.ffmpegkit.FFmpegKit')
+                ReturnCode = autoclass('com.arthenica.ffmpegkit.ReturnCode')
+
+                session = FFmpegKit.execute(cmd)
+                return_code = session.getReturnCode()
+
+                if ReturnCode.isSuccess(return_code):
+                    msg = f"Done!\nSaved as:\n{name}_double{ext}"
+                else:
+                    msg = "Failed to process video!"
+            except Exception as e:
+                msg = f"Error: {str(e)}"
+        else:
+            import subprocess
+            try:
+                subprocess.run(f"ffmpeg {cmd}", shell=True, check=True)
+                msg = f"Done!\nSaved as:\n{name}_double{ext}"
+            except Exception as e:
+                msg = f"Error: {str(e)}"
+
+        Clock.schedule_once(lambda dt: self.set_status(msg))
+
+    def set_status(self, text):
+        self.label.text = text
 
 if __name__ == '__main__':
     TikFPSApp().run()
