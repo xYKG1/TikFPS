@@ -46,7 +46,7 @@ android.archs = arm64-v8a
 android.accept_sdk_license = True
 
 # (list) Gradle dependencies
-android.gradle_dependencies = com.arthenica:ffmpeg-kit-full:4.4
+android.gradle_dependencies = com.arthenica:ffmpeg-kit-full:4.5.LTS
 
 [buildozer]
 
