@@ -18,8 +18,8 @@ source.include_exts = py,png,jpg,kv,atlas
 # (str) Application versioning
 version = 0.1
 
-# (list) Application requirements (تمت إضافة android لتوافق pyjnius)
-requirements = python3,kivy,plyer,android,pyjnius
+# (list) Application requirements
+requirements = python3,kivy,plyer,pyjnius
 
 # (str) Supported orientation
 orientation = portrait
@@ -33,7 +33,7 @@ android.permissions = READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE, READ_MEDIA_
 # (int) Target Android API
 android.api = 33
 
-# (int) Minimum API required (تم رفعه إلى 24 لتوافق FFmpegKit)
+# (int) Minimum API required
 android.minapi = 24
 
 # (str) Android NDK version
@@ -46,11 +46,11 @@ android.archs = arm64-v8a
 android.accept_sdk_license = True
 
 # (list) Gradle dependencies
-android.gradle_dependencies = com.arthenica:ffmpeg-kit-full:5.1
+android.gradle_dependencies = com.arthenica:ffmpeg-kit-full:4.4
 
 [buildozer]
 
-# (int) Log level (تم تقليله إلى 1 لمنع انقطاع السجلات في GitHub)
+# (int) Log level
 log_level = 1
 
 # (int) Display warning if buildozer is run as root
