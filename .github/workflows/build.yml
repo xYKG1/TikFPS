@@ -26,13 +26,19 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install dependencies
+      - name: Install System & Python Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y ccache libffi-dev libssl-dev build-essential git ffmpeg
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip setuptools
           pip install "cython<3.0.0"
-          pip install buildozer
+          pip install buildozer python-for-android
+
+      - name: Clear Pre-installed System NDK
+        run: |
+          echo "ANDROID_NDK_HOME=" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=" >> $GITHUB_ENV
+          echo "ANDROID_NDK_LATEST_HOME=" >> $GITHUB_ENV
 
       - name: Build APK with Buildozer
         run: |
