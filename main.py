@@ -77,7 +77,6 @@ class TikFPSApp(App):
         
         output_path = os.path.join(dir_name, f"{name}_double{ext}")
 
-        # نفس أمر FFmpeg الخاص بك لرباعية الإطارات / التوقيت
         cmd = f'-y -i "{self.selected_video}" -c copy -bsf:v setts=ts=TS*2 -bsf:a setts=ts=TS*2 -video_track_timescale 90000 -brand isom "{output_path}"'
 
         if platform == 'android':
