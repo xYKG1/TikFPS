@@ -7,7 +7,8 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # تغيير نظام التشغيل إلى 22.04 لضمان استقرار المكتبات
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -20,13 +21,13 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+          # تمت إزالة libtinfo5 المسببة للخطأ
+          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses-dev libffi-dev libssl-dev
           pip install --upgrade pip
           pip install "cython<3.0.0" buildozer python-for-android
 
       - name: Build with Buildozer
         env:
-          # فرض استخدام NDK 25b ومنع أي تجاوزات
           ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/25.1.8937393
         run: |
           buildozer android debug
