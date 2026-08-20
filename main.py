@@ -1,46 +1,71 @@
 import os
-import subprocess
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
+from kivy.clock import Clock
 from plyer import filechooser
+from kivy.utils import platform
 
 class TikFPSApp(App):
     def build(self):
-        self.title = "TikFPS"
-        self.selected_file = None
-        layout = BoxLayout(orientation='vertical', padding=30, spacing=20)
-        self.lbl = Label(text="TikFPS: Select Video", font_size='18sp')
-        btn_pick = Button(text="1. Select Video from Gallery", size_hint=(1, 0.3), background_color=(0.2, 0.6, 1, 1))
-        btn_pick.bind(on_press=self.pick_video)
-        btn_run = Button(text="2. Process Video", size_hint=(1, 0.3), background_color=(0.2, 0.8, 0.2, 1))
-        btn_run.bind(on_press=self.process_video)
-        layout.add_widget(self.lbl)
-        layout.add_widget(btn_pick)
-        layout.add_widget(btn_run)
+        self.selected_video = None
+
+        layout = BoxLayout(orientation='vertical', padding=20, spacing=20)
+
+        self.label = Label(
+            text="TikFPS: Select Video",
+            font_size='20sp',
+            halign='center',
+            valign='middle'
+        )
+        layout.add_widget(self.label)
+
+        btn_select = Button(
+            text="1. Select Video from Gallery",
+            background_color=(0.1, 0.3, 0.5, 1),
+            size_hint_y=0.25
+        )
+        btn_select.bind(on_release=self.request_and_open)
+        layout.add_widget(btn_select)
+
+        btn_process = Button(
+            text="2. Process Video",
+            background_color=(0.1, 0.4, 0.1, 1),
+            size_hint_y=0.25
+        )
+        btn_process.bind(on_release=self.process_video)
+        layout.add_widget(btn_process)
+
         return layout
 
-    def pick_video(self, instance):
-        filechooser.open_file(on_selection=self.on_select)
+    def request_and_open(self, instance):
+        if platform == 'android':
+            from android.permissions import request_permissions, Permission
+            request_permissions(
+                [Permission.READ_MEDIA_VIDEO, Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE],
+                self.open_gallery
+            )
+        else:
+            self.open_gallery(None, None)
 
-    def on_select(self, selection):
-        if selection:
-            self.selected_file = selection[0]
-            self.lbl.text = f"Selected: {os.path.basename(self.selected_file)}"
+    def open_gallery(self, permissions, grants):
+        filechooser.open_file(on_selection=self.on_video_selected)
+
+    def on_video_selected(self, selection):
+        if selection and len(selection) > 0:
+            self.selected_video = selection[0]
+            Clock.schedule_once(self.update_ui)
+
+    def update_ui(self, dt):
+        filename = os.path.basename(self.selected_video)
+        self.label.text = f"Selected Video:\n{filename}"
 
     def process_video(self, instance):
-        if not self.selected_file:
-            self.lbl.text = "Please select a video first!"
+        if not self.selected_video:
+            self.label.text = "Please select a video first!"
             return
-        out_file = os.path.splitext(self.selected_file)[0] + "_TikFPS.mp4"
-        cmd = f'ffmpeg -y -i "{self.selected_file}" -c copy -bsf:v setts=ts=TS*2 -bsf:a setts=ts=TS*2 -video_track_timescale 90000 -brand isom "{out_file}"'
-        try:
-            self.lbl.text = "Processing..."
-            subprocess.run(cmd, shell=True, check=True)
-            self.lbl.text = f"Done! Saved: {os.path.basename(out_file)}"
-        except Exception as e:
-            self.lbl.text = "Error during processing"
+        self.label.text = f"Processing: {os.path.basename(self.selected_video)}"
 
 if __name__ == '__main__':
     TikFPSApp().run()
