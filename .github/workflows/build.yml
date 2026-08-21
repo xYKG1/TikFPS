@@ -8,6 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -24,11 +25,20 @@ jobs:
           pip install --upgrade pip
           pip install "cython<3.0.0" buildozer python-for-android
 
+      - name: Purge System NDK 27 & Reset Variables
+        run: |
+          # حذف NDK 27 القسري من نظام GitHub تماماً
+          sudo rm -rf /usr/local/lib/android/sdk/ndk/27*
+          sudo rm -rf /usr/local/lib/android/sdk/ndk-bundle
+          
+          # إلغاء ربط المتغيرات التي تشير لـ NDK 27
+          echo "ANDROID_NDK_HOME=" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=" >> $GITHUB_ENV
+          echo "ANDROID_NDK_LATEST_HOME=" >> $GITHUB_ENV
+
       - name: Build with Buildozer
         env:
-          # هذا المتغير يمنع Buildozer من التوقف عند فحص مكونات SDK
           BUILDOZER_ALLOW_SDK_COMPONENTS_REINSTALL: 1
-          ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/25.1.8937393
         run: |
           buildozer android debug
 
