@@ -5,7 +5,7 @@ package.domain = com.tikfps
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas
 version = 0.1
-requirements = python3,kivy,plyer,pyjnius
+requirements = python3,kivy,plyer,pyjnius,ffpyplayer
 orientation = portrait
 fullscreen = 0
 android.permissions = READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE, READ_MEDIA_VIDEO
@@ -14,7 +14,6 @@ android.minapi = 24
 android.ndk = 25b
 android.archs = arm64-v8a
 android.accept_sdk_license = True
-android.gradle_dependencies = com.arthenica:ffmpeg-kit-full:4.5.LTS
 
 [buildozer]
 log_level = 2
