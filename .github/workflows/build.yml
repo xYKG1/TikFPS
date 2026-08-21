@@ -7,7 +7,6 @@ on:
 
 jobs:
   build:
-    # تغيير نظام التشغيل إلى 22.04 لضمان استقرار المكتبات
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout repository
@@ -21,13 +20,14 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          # تمت إزالة libtinfo5 المسببة للخطأ
           sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses-dev libffi-dev libssl-dev
           pip install --upgrade pip
           pip install "cython<3.0.0" buildozer python-for-android
 
       - name: Build with Buildozer
         env:
+          # هذا المتغير يمنع Buildozer من التوقف عند فحص مكونات SDK
+          BUILDOZER_ALLOW_SDK_COMPONENTS_REINSTALL: 1
           ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/25.1.8937393
         run: |
           buildozer android debug
