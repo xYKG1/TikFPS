@@ -22,21 +22,10 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
-          pip install --upgrade pip setuptools
-          pip install "sh<2.0,>=1.10" "cython<3.0.0" "buildozer==1.5.0" "python-for-android==2024.1.21"
-
-      - name: Install NDK 25b Explicitly
-        run: |
-          cd /tmp
-          wget -q https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
-          unzip -q android-ndk-r25b-linux.zip
-          sudo mv android-ndk-r25b /opt/android-ndk-r25b
+          python -m pip install --upgrade pip setuptools
+          pip install "sh<2.0,>=1.10" "cython<3.0.0" buildozer p4a
 
       - name: Build with Buildozer
-        env:
-          ANDROID_NDK_HOME: /opt/android-ndk-r25b
-          ANDROID_NDK_ROOT: /opt/android-ndk-r25b
-          BUILDOZER_ALLOW_SDK_COMPONENTS_REINSTALL: 1
         run: |
           buildozer android debug
 
