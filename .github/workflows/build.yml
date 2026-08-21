@@ -27,11 +27,8 @@ jobs:
 
       - name: Purge System NDK 27 & Reset Variables
         run: |
-          # حذف NDK 27 القسري من نظام GitHub تماماً
           sudo rm -rf /usr/local/lib/android/sdk/ndk/27*
           sudo rm -rf /usr/local/lib/android/sdk/ndk-bundle
-          
-          # إلغاء ربط المتغيرات التي تشير لـ NDK 27
           echo "ANDROID_NDK_HOME=" >> $GITHUB_ENV
           echo "ANDROID_NDK_ROOT=" >> $GITHUB_ENV
           echo "ANDROID_NDK_LATEST_HOME=" >> $GITHUB_ENV
