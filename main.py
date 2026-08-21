@@ -109,3 +109,4 @@ class TikFPSApp(App):
 
 if __name__ == '__main__':
     TikFPSApp().run()
+
