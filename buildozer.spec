@@ -16,9 +16,6 @@ android.archs = arm64-v8a
 android.accept_sdk_license = True
 android.gradle_dependencies = com.arthenica:ffmpeg-kit-full:4.5.LTS
 
-# هذا السطر هو الأهم لحل مشكلة التعليق
-p4a.branch = develop
-
 [buildozer]
 log_level = 2
 warn_on_root = 0
