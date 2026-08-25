@@ -7,27 +7,17 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Build with Buildozer Action
+        uses: ArtemSydoryk/buildozer-action@v1
         with:
-          python-version: '3.11'
-
-      - name: Install System Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
-          python -m pip install --upgrade pip "setuptools<70.0.0"
-          pip install "sh<2.0,>=1.10" "cython<3.0.0" buildozer python-for-android
-
-      - name: Build with Buildozer
-        run: |
-          buildozer android debug
+          command: buildozer android debug
+          repository_read_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
