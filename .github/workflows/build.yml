@@ -28,13 +28,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y git zip unzip python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
-          python -m pip install --upgrade pip setuptools=="68.2.2" wheel
-          pip install "cython==0.29.33" "sh<2.0,>=1.10" "buildozer==1.5.0" "python-for-android==2024.1.21"
-
-      - name: Force Full Clean
-        run: |
-          rm -rf .buildozer/
-          rm -rf ~/.buildozer/
+          python3 -m pip install --upgrade pip setuptools wheel
+          pip install "cython<3.0.0" "buildozer==1.5.0" "python-for-android==2024.1.21"
 
       - name: Build with Buildozer
         run: |
