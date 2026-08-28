@@ -71,11 +71,12 @@ class TikFPSApp(App):
         threading.Thread(target=self.run_ffmpeg_command).start()
 
     def run_ffmpeg_command(self):
+        import subprocess
+
         dir_name = os.path.dirname(self.selected_video)
         base_name = os.path.basename(self.selected_video)
         name, ext = os.path.splitext(base_name)
         
-        # إذا كان المسار في أندرويد لا يمكن الكتابة فيه مباشرة، نحفظ في مجلد المستندات/المعرض
         if platform == 'android':
             output_dir = "/sdcard/Download"
             if not os.path.exists(output_dir):
@@ -85,31 +86,34 @@ class TikFPSApp(App):
 
         output_path = os.path.join(output_dir, f"{name}_double{ext}")
 
-        cmd = f'-y -i "{self.selected_video}" -c copy -bsf:v setts=ts=TS*2 -bsf:a setts=ts=TS*2 -video_track_timescale 90000 -brand isom "{output_path}"'
-
+        # تحديد مسار ffmpeg المدمج في التطبيق
+        ffmpeg_bin = "ffmpeg"
         if platform == 'android':
-            try:
-                from jnius import autoclass
-                FFmpegKit = autoclass('com.arthenica.ffmpegkit.FFmpegKit')
-                ReturnCode = autoclass('com.arthenica.ffmpegkit.ReturnCode')
+            # مسار ثنائي ffmpeg المدمج عبر p4a
+            possible_path = os.path.join(os.environ.get('PYTHONHOME', ''), 'lib', 'libffmpeg.so')
+            if os.path.exists(possible_path):
+                ffmpeg_bin = possible_path
 
-                session = FFmpegKit.execute(cmd)
-                return_code = session.getReturnCode()
+        cmd = [
+            ffmpeg_bin,
+            "-y",
+            "-i", self.selected_video,
+            "-c", "copy",
+            "-bsf:v", "setts=ts=TS*2",
+            "-bsf:a", "setts=ts=TS*2",
+            "-video_track_timescale", "90000",
+            "-brand", "isom",
+            output_path
+        ]
 
-                if ReturnCode.isSuccess(return_code):
-                    msg = f"Done!\nSaved to Downloads as:\n{name}_double{ext}"
-                else:
-                    fail_trace = session.getFailStackTrace()
-                    msg = f"Failed! Code: {return_code}"
-            except Exception as e:
-                msg = f"Error: {str(e)}"
-        else:
-            import subprocess
-            try:
-                subprocess.run(f"ffmpeg {cmd}", shell=True, check=True)
-                msg = f"Done!\nSaved as:\n{name}_double{ext}"
-            except Exception as e:
-                msg = f"Error: {str(e)}"
+        try:
+            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            if result.returncode == 0:
+                msg = f"Done!\nSaved to Downloads as:\n{name}_double{ext}"
+            else:
+                msg = f"Failed!\n{result.stderr[-200:]}"
+        except Exception as e:
+            msg = f"Error: {str(e)}"
 
         Clock.schedule_once(lambda dt: self.set_status(msg))
 
