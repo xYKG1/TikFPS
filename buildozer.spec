@@ -7,7 +7,7 @@ source.include_exts = py,png,jpg,kv,atlas
 version = 0.1
 
 # تثبيت إصدار Kivy المستقر وتجنب تعارضات Cython
-requirements = python3==3.10.12,kivy==2.3.0,plyer,android
+requirements = python3,kivy==2.3.0,plyer,android
 # p4a.branch = master
 orientation = portrait
 fullscreen = 0
