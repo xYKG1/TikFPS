@@ -31,14 +31,14 @@ jobs:
           python -m pip install --upgrade pip setuptools=="68.2.2" wheel
           pip install "cython==0.29.33" "sh<2.0,>=1.10" "buildozer==1.5.0" "python-for-android==2024.1.21"
 
-      - name: Clean Cache
+      - name: Force Full Clean
         run: |
           rm -rf .buildozer/
+          rm -rf ~/.buildozer/
 
       - name: Build with Buildozer
-        env:
-          P4A_RELEASE_KEYSTORE: ''
         run: |
+          buildozer android clean
           buildozer android debug
 
       - name: Upload APK
