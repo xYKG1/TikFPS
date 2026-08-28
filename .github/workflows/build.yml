@@ -28,8 +28,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y git zip unzip python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
-          python -m pip install --upgrade pip "setuptools<70.0.0" "wheel"
-          pip install "sh<2.0,>=1.10" "cython<3.0.0" buildozer
+          python -m pip install --upgrade pip "setuptools<70.0.0" wheel
+          pip install "cython==0.29.33" "sh<2.0,>=1.10" buildozer
 
       - name: Build with Buildozer
         env:
