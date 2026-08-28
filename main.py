@@ -71,36 +71,34 @@ class TikFPSApp(App):
         threading.Thread(target=self.run_ffmpeg_command).start()
 
     def run_ffmpeg_command(self):
+        import ffmpeg
+
         dir_name = os.path.dirname(self.selected_video)
         base_name = os.path.basename(self.selected_video)
         name, ext = os.path.splitext(base_name)
         
         output_path = os.path.join(dir_name, f"{name}_double{ext}")
 
-        cmd = f'-y -i "{self.selected_video}" -c copy -bsf:v setts=ts=TS*2 -bsf:a setts=ts=TS*2 -video_track_timescale 90000 -brand isom "{output_path}"'
-
-        if platform == 'android':
-            try:
-                from jnius import autoclass
-                FFmpegKit = autoclass('com.arthenica.ffmpegkit.FFmpegKit')
-                ReturnCode = autoclass('com.arthenica.ffmpegkit.ReturnCode')
-
-                session = FFmpegKit.execute(cmd)
-                return_code = session.getReturnCode()
-
-                if ReturnCode.isSuccess(return_code):
-                    msg = f"Done!\nSaved as:\n{name}_double{ext}"
-                else:
-                    msg = "Failed to process video!"
-            except Exception as e:
-                msg = f"Error: {str(e)}"
-        else:
-            import subprocess
-            try:
-                subprocess.run(f"ffmpeg {cmd}", shell=True, check=True)
-                msg = f"Done!\nSaved as:\n{name}_double{ext}"
-            except Exception as e:
-                msg = f"Error: {str(e)}"
+        try:
+            (
+                ffmpeg
+                .input(self.selected_video)
+                .output(
+                    output_path,
+                    c='copy',
+                    **{
+                        'bsf:v': 'setts=ts=TS*2',
+                        'bsf:a': 'setts=ts=TS*2',
+                        'video_track_timescale': '90000',
+                        'brand': 'isom'
+                    }
+                )
+                .overwrite_output()
+                .run(capture_stdout=True, capture_stderr=True)
+            )
+            msg = f"Done!\nSaved as:\n{name}_double{ext}"
+        except Exception as e:
+            msg = f"Error: {str(e)}"
 
         Clock.schedule_once(lambda dt: self.set_status(msg))
 
@@ -109,4 +107,3 @@ class TikFPSApp(App):
 
 if __name__ == '__main__':
     TikFPSApp().run()
-
