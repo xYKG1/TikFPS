@@ -7,8 +7,8 @@ source.include_exts = py,png,jpg,kv,atlas
 version = 0.1
 
 # تثبيت إصدار Kivy المستقر وتجنب تعارضات Cython
-requirements = python3,kivy==2.2.1,plyer,pyjnius,cython==0.29.33
-p4a.branch = master
+requirements = python3==3.10.12,kivy==2.2.1,plyer,pyjnius,cython==0.29.33
+p4a.branch = release-2024.01.21
 orientation = portrait
 fullscreen = 0
 android.permissions = READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE, READ_MEDIA_VIDEO
