@@ -24,12 +24,12 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install System Dependencies & Tools
+      - name: Install System Dependencies & Build Tools
         run: |
           sudo apt-get update
           sudo apt-get install -y git zip unzip python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
-          python -m pip install --upgrade pip
-          pip install "setuptools<69.0.0" "wheel" "cython<0.30.0,>=0.29.33" "sh<2.0,>=1.10" "buildozer==1.5.0"
+          python -m pip install --upgrade pip setuptools wheel
+          pip install "cython<0.30.0,>=0.29.33" "sh<2.0,>=1.10" "buildozer==1.5.0"
 
       - name: Clean Build Cache
         run: |
@@ -37,7 +37,8 @@ jobs:
 
       - name: Build with Buildozer
         env:
-          PIP_NO_BUILD_ISOLATION: "0"
+          PIP_NO_BUILD_ISOLATION: "1"
+          PIP_NO_ISOLATION: "1"
           ANDROID_NDK_HOME: ''
           ANDROID_NDK_ROOT: ''
         run: |
