@@ -42,16 +42,27 @@ class TikFPSApp(App):
 
     def request_and_open(self, instance):
         if platform == 'android':
-            from android.permissions import request_permissions, Permission
-            request_permissions(
-                [Permission.READ_MEDIA_VIDEO, Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE],
-                self.open_gallery
-            )
+            try:
+                from android.permissions import request_permissions, Permission
+                # طلب أذونات التخزين الآمنة المتوافقة مع جميع إصدارات أندرويد في Kivy
+                request_permissions([
+                    Permission.READ_EXTERNAL_STORAGE,
+                    Permission.WRITE_EXTERNAL_STORAGE
+                ], self.on_permission_result)
+            except Exception as e:
+                self.open_gallery()
         else:
-            self.open_gallery(None, None)
+            self.open_gallery()
 
-    def open_gallery(self, permissions, grants):
-        filechooser.open_file(on_selection=self.on_video_selected)
+    def on_permission_result(self, permissions, grant_results):
+        # فتح المعرض بغض النظر عن النتيجة (سيفتح لو الأذن متاح)
+        Clock.schedule_once(lambda dt: self.open_gallery(), 0.2)
+
+    def open_gallery(self, *args):
+        try:
+            filechooser.open_file(on_selection=self.on_video_selected)
+        except Exception as e:
+            self.label.text = f"Error opening filechooser: {str(e)}"
 
     def on_video_selected(self, selection):
         if selection and len(selection) > 0:
@@ -77,19 +88,14 @@ class TikFPSApp(App):
         base_name = os.path.basename(self.selected_video)
         name, ext = os.path.splitext(base_name)
         
-        if platform == 'android':
-            output_dir = "/sdcard/Download"
-            if not os.path.exists(output_dir):
-                output_dir = dir_name
-        else:
+        output_dir = "/sdcard/Download" if platform == 'android' else dir_name
+        if not os.path.exists(output_dir):
             output_dir = dir_name
 
         output_path = os.path.join(output_dir, f"{name}_double{ext}")
 
-        # تحديد مسار ffmpeg المدمج في التطبيق
         ffmpeg_bin = "ffmpeg"
         if platform == 'android':
-            # مسار ثنائي ffmpeg المدمج عبر p4a
             possible_path = os.path.join(os.environ.get('PYTHONHOME', ''), 'lib', 'libffmpeg.so')
             if os.path.exists(possible_path):
                 ffmpeg_bin = possible_path
