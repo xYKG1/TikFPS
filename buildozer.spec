@@ -10,6 +10,7 @@ p4a.branch = v2024.01.21
 orientation = portrait
 fullscreen = 0
 android.permissions = READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE, READ_MEDIA_VIDEO
+android.gradle_dependencies = com.arthenica:ffmpeg-kit-full:4.5.LTS
 android.api = 33
 android.minapi = 24
 android.ndk = 25b
