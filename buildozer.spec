@@ -7,7 +7,7 @@ source.include_exts = py,png,jpg,kv,atlas
 version = 0.1
 
 # تثبيت إصدار Kivy المستقر وتجنب تعارضات Cython
-requirements = python3,kivy==2.2.1,plyer,pyjnius,cython==0.29.33
+requirements = python3,kivy==2.2.1,plyer,pyjnius
 
 p4a.branch = master
 orientation = portrait
