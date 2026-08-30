@@ -7,7 +7,7 @@ source.include_exts = py,png,jpg,kv,atlas
 version = 0.1
 
 # تثبيت إصدار Kivy المستقر وتجنب تعارضات Cython
-requirements = python3==3.11.0,hostpython3==3.11.0,kivy==2.3.0,plyer,android,ffmpeg-python
+requirements = python3==3.11.0,hostpython3==3.11.0,kivy==2.3.0,plyer,android,ffmpegandroid
 # p4a.branch = master
 orientation = portrait
 fullscreen = 0
