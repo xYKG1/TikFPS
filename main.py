@@ -88,12 +88,23 @@ class TikFPSApp(App):
             output_dir = os.path.dirname(self.selected_video)
             output_file = os.path.join(output_dir, "processed_tikfps.mp4")
             
-            # أمر FFmpeg لمعالجة الفيديو (مثال: إعادة ترميز ومضاعفة/ضبط الإطارات)
+            ffmpeg_bin = 'ffmpeg'
+            
+            # البحث عن مسار ffmpeg التنفيذي في أندرويد
+            if platform == 'android':
+                from jnius import autoclass
+                PythonActivity = autoclass('org.kivy.android.PythonActivity')
+                activity = PythonActivity.mActivity
+                lib_dir = activity.getApplicationInfo().nativeLibraryDir
+                possible_ffmpeg = os.path.join(lib_dir, 'libffmpeg.so')
+                
+                if os.path.exists(possible_ffmpeg):
+                    ffmpeg_bin = possible_ffmpeg
+
             cmd = [
-                'ffmpeg', '-y',
+                ffmpeg_bin, '-y',
                 '-i', self.selected_video,
                 '-c:v', 'libx264',
-                '-crf', '18',
                 '-preset', 'ultrafast',
                 output_file
             ]
