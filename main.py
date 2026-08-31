@@ -1,5 +1,4 @@
 import os
-import sys
 import threading
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
@@ -15,7 +14,7 @@ class TikFPSApp(App):
         layout = BoxLayout(orientation='vertical', padding=20, spacing=20)
         
         self.label = Label(
-            text="TikFPS: Ready",
+            text="TikFPS\nاختر فيديو للبدء",
             font_size='16sp',
             halign='center',
             valign='middle'
@@ -23,7 +22,7 @@ class TikFPSApp(App):
         layout.add_widget(self.label)
 
         btn_select = Button(
-            text="1. Select Video",
+            text="1. اختيار الفيديو",
             background_color=(0.1, 0.3, 0.5, 1),
             size_hint_y=0.25
         )
@@ -31,7 +30,7 @@ class TikFPSApp(App):
         layout.add_widget(btn_select)
 
         btn_process = Button(
-            text="2. Process Video",
+            text="2. معالجة وحفظ",
             background_color=(0.1, 0.4, 0.1, 1),
             size_hint_y=0.25
         )
@@ -49,7 +48,6 @@ class TikFPSApp(App):
                     Permission.WRITE_EXTERNAL_STORAGE
                 ], self.on_permission_result)
             except Exception as e:
-                self.label.text = f"Perm Error: {str(e)}"
                 self.open_gallery()
         else:
             self.open_gallery()
@@ -61,7 +59,7 @@ class TikFPSApp(App):
         try:
             filechooser.open_file(on_selection=self.on_video_selected)
         except Exception as e:
-            self.label.text = f"Gallery Error: {str(e)}"
+            self.label.text = f"خطأ في فتح المعرض: {str(e)}"
 
     def on_video_selected(self, selection):
         if selection and len(selection) > 0:
@@ -70,17 +68,17 @@ class TikFPSApp(App):
 
     def update_ui(self, dt):
         filename = os.path.basename(self.selected_video)
-        self.label.text = f"Selected:\n{filename}"
+        self.label.text = f"تم تحديد:\n{filename}"
 
     def process_video(self, instance):
         if not self.selected_video:
-            self.label.text = "Please select a video first!"
+            self.label.text = "الرجاء اختيار فيديو أولاً!"
             return
         
-        self.label.text = "Processing Video...\nPlease wait."
-        threading.Thread(target=self.run_native_ffmpeg).start()
+        self.label.text = "جاري معالجة الفيديو...\nيرجى الانتظار"
+        threading.Thread(target=self.run_ffmpeg_processing).start()
 
-    def run_native_ffmpeg(self):
+    def run_ffmpeg_processing(self):
         try:
             if platform == 'android':
                 from android.storage import primary_external_storage_path
@@ -89,34 +87,39 @@ class TikFPSApp(App):
                 storage_dir = os.path.dirname(self.selected_video)
 
             os.makedirs(storage_dir, exist_ok=True)
-            output_file = os.path.join(storage_dir, f"patched_{os.path.basename(self.selected_video)}")
+            output_file = os.path.join(storage_dir, f"tikfps_{os.path.basename(self.selected_video)}")
 
-            # أمر FFmpeg المطلوب كـ string
-            cmd_str = f"-y -i \"{self.selected_video}\" -c copy -bsf:v setts=ts=TS*2 -bsf:a setts=ts=TS*2 -video_track_timescale 90000 -brand isom \"{output_file}\""
+            # استدعاء ffmpeg-python للقيام بنفس عملية Bitstream Filters و Timescale
+            import ffmpeg
+            
+            (
+                ffmpeg
+                .input(self.selected_video)
+                .output(
+                    output_file,
+                    c='copy',
+                    bsf_v='setts=ts=TS*2',
+                    bsf_a='setts=ts=TS*2',
+                    video_track_timescale=90000,
+                    brand='isom'
+                )
+                .overwrite_output()
+                .run(capture_stdout=True, capture_stderr=True)
+            )
 
             if platform == 'android':
-                from jnius import autoclass
-                FFmpegKit = autoclass('com.ffmpegkit.FFmpegKit')
-                ReturnCode = autoclass('com.ffmpegkit.ReturnCode')
-                
-                session = FFmpegKit.execute(cmd_str)
-                if ReturnCode.isSuccess(session.getReturnCode()):
-                    self.scan_file_to_gallery(output_file)
-                    self.set_status(f"Success!\nSaved to Downloads:\n{os.path.basename(output_file)}")
-                else:
-                    self.set_status(f"FFmpeg Execution Failed!\nCode: {session.getReturnCode()}")
-            else:
-                self.set_status("Desktop simulation completed.")
+                self.scan_file_to_gallery(output_file)
+
+            self.set_status(f"تمت المعالجة بنجاح!\nتم الحفظ في التنزيلات:\n{os.path.basename(output_file)}")
 
         except Exception as e:
-            self.set_status(f"Error: {str(e)}")
+            self.set_status(f"خطأ أثناء المعالجة:\n{str(e)}")
 
     def scan_file_to_gallery(self, file_path):
         try:
             from jnius import autoclass
             PythonActivity = autoclass('org.kivy.android.PythonActivity')
             MediaScannerConnection = autoclass('android.media.MediaScannerConnection')
-            
             activity = PythonActivity.mActivity
             MediaScannerConnection.scanFile(activity, [file_path], None, None)
         except Exception as e:
