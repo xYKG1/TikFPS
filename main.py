@@ -1,7 +1,7 @@
 import os
 import sys
 import threading
-import shutil
+import subprocess
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -79,15 +79,14 @@ class TikFPSApp(App):
             return
         
         self.label.text = "Processing Video...\nPlease wait."
-        threading.Thread(target=self.run_processing_task).start()
+        threading.Thread(target=self.run_ffmpeg_command).start()
 
-    def run_processing_task(self):
+    def run_ffmpeg_command(self):
         try:
             if not os.path.exists(self.selected_video):
                 self.set_status("Error: Input file not found!")
                 return
 
-            # تحديد مجلد المخرجات العامة لتظهر في المعرض مباشرة (Download أو DCIM)
             if platform == 'android':
                 from android.storage import primary_external_storage_path
                 storage_dir = os.path.join(primary_external_storage_path(), 'Download')
@@ -97,19 +96,33 @@ class TikFPSApp(App):
             if not os.path.exists(storage_dir):
                 os.makedirs(storage_dir, exist_ok=True)
 
-            output_file = os.path.join(storage_dir, f"tikfps_processed_{os.path.basename(self.selected_video)}")
+            output_file = os.path.join(storage_dir, f"patched_{os.path.basename(self.selected_video)}")
 
-            # عملية معالجة/إنشاء النسخة الجديدة من الفيديو
-            shutil.copyfile(self.selected_video, output_file)
+            # إعداد مسار وثنائي ffmpeg للنظام أو تنفيذ الأمر البرمجي
+            cmd = [
+                'ffmpeg', '-y',
+                '-i', self.selected_video,
+                '-c', 'copy',
+                '-bsf:v', 'setts=ts=TS*2',
+                '-bsf:a', 'setts=ts=TS*2',
+                '-video_track_timescale', '90000',
+                '-brand', 'isom',
+                output_file
+            ]
 
-            # إشعار النظام (MediaScanner) لظهور الفيديو فوراً في المعرض
-            if platform == 'android':
-                self.scan_file_to_gallery(output_file)
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
+            stdout, stderr = process.communicate()
 
-            self.set_status(f"Success!\nSaved to Gallery/Downloads:\n{os.path.basename(output_file)}")
+            if process.returncode == 0:
+                if platform == 'android':
+                    self.scan_file_to_gallery(output_file)
+                self.set_status(f"Success!\nSaved to Gallery/Downloads:\n{os.path.basename(output_file)}")
+            else:
+                # في حال تعذر تنفيذ الثنائي المباشر يتم إظهار الخطأ الدقيق لتصحيح المسار
+                self.set_status(f"FFmpeg Error:\n{stderr.decode('utf-8', errors='ignore')[-200:]}")
 
         except Exception as e:
-            self.set_status(f"Processing Error: {str(e)}")
+            self.set_status(f"Error: {str(e)}")
 
     def scan_file_to_gallery(self, file_path):
         try:
