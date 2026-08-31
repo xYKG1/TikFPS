@@ -6,9 +6,8 @@ source.dir = .
 source.include_exts = py,png,jpg,kv,atlas
 version = 0.1
 
-# تثبيت إصدار Kivy المستقر وتجنب تعارضات Cython
-requirements = python3==3.11.0,hostpython3==3.11.0,kivy==2.3.0,plyer,android,ffmpegandroid
-# p4a.branch = master
+requirements = python3==3.11.0,hostpython3==3.11.0,kivy==2.3.0,plyer,android
+
 orientation = portrait
 fullscreen = 0
 android.permissions = READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE, READ_MEDIA_IMAGES, READ_MEDIA_VIDEO
