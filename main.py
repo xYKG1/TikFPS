@@ -13,8 +13,9 @@ class TikFPSApp(App):
         self.selected_video = None
         layout = BoxLayout(orientation='vertical', padding=20, spacing=20)
         
+        # استخدام إنجليزية واضحة لتجنب مشكلة الخطوط والمربعات
         self.label = Label(
-            text="TikFPS\nاختر فيديو للبدء",
+            text="TikFPS\nSelect a video to process",
             font_size='16sp',
             halign='center',
             valign='middle'
@@ -22,7 +23,7 @@ class TikFPSApp(App):
         layout.add_widget(self.label)
 
         btn_select = Button(
-            text="1. اختيار الفيديو",
+            text="1. Select Video",
             background_color=(0.1, 0.3, 0.5, 1),
             size_hint_y=0.25
         )
@@ -30,7 +31,7 @@ class TikFPSApp(App):
         layout.add_widget(btn_select)
 
         btn_process = Button(
-            text="2. معالجة وحفظ",
+            text="2. Process Video",
             background_color=(0.1, 0.4, 0.1, 1),
             size_hint_y=0.25
         )
@@ -59,7 +60,7 @@ class TikFPSApp(App):
         try:
             filechooser.open_file(on_selection=self.on_video_selected)
         except Exception as e:
-            self.label.text = f"خطأ في فتح المعرض: {str(e)}"
+            self.label.text = f"Gallery Error: {str(e)}"
 
     def on_video_selected(self, selection):
         if selection and len(selection) > 0:
@@ -68,17 +69,17 @@ class TikFPSApp(App):
 
     def update_ui(self, dt):
         filename = os.path.basename(self.selected_video)
-        self.label.text = f"تم تحديد:\n{filename}"
+        self.label.text = f"Selected File:\n{filename}"
 
     def process_video(self, instance):
         if not self.selected_video:
-            self.label.text = "الرجاء اختيار فيديو أولاً!"
+            self.label.text = "Please select a video first!"
             return
         
-        self.label.text = "جاري معالجة الفيديو...\nيرجى الانتظار"
-        threading.Thread(target=self.run_ffmpeg_processing).start()
+        self.label.text = "Processing video...\nPlease wait"
+        threading.Thread(target=self.run_ffmpeg_native).start()
 
-    def run_ffmpeg_processing(self):
+    def run_ffmpeg_native(self):
         try:
             if platform == 'android':
                 from android.storage import primary_external_storage_path
@@ -87,33 +88,28 @@ class TikFPSApp(App):
                 storage_dir = os.path.dirname(self.selected_video)
 
             os.makedirs(storage_dir, exist_ok=True)
-            output_file = os.path.join(storage_dir, f"tikfps_{os.path.basename(self.selected_video)}")
+            output_file = os.path.join(storage_dir, f"patched_{os.path.basename(self.selected_video)}")
 
-            # استدعاء ffmpeg-python للقيام بنفس عملية Bitstream Filters و Timescale
-            import ffmpeg
-            
-            (
-                ffmpeg
-                .input(self.selected_video)
-                .output(
-                    output_file,
-                    c='copy',
-                    bsf_v='setts=ts=TS*2',
-                    bsf_a='setts=ts=TS*2',
-                    video_track_timescale=90000,
-                    brand='isom'
-                )
-                .overwrite_output()
-                .run(capture_stdout=True, capture_stderr=True)
-            )
+            cmd = f"-y -i \"{self.selected_video}\" -c copy -bsf:v setts=ts=TS*2 -bsf:a setts=ts=TS*2 -video_track_timescale 90000 -brand isom \"{output_file}\""
 
             if platform == 'android':
-                self.scan_file_to_gallery(output_file)
+                from jnius import autoclass
+                FFmpegKit = autoclass('com.ffmpegkit.FFmpegKit')
+                session = FFmpegKit.execute(cmd)
+                return_code = session.getReturnCode()
 
-            self.set_status(f"تمت المعالجة بنجاح!\nتم الحفظ في التنزيلات:\n{os.path.basename(output_file)}")
+                if return_code.isValueSuccess():
+                    self.scan_file_to_gallery(output_file)
+                    self.set_status(f"Success!\nSaved in Downloads:\n{os.path.basename(output_file)}")
+                else:
+                    self.set_status(f"FFmpeg Failed with code: {return_code}")
+            else:
+                import subprocess
+                subprocess.run(f"ffmpeg {cmd}", shell=True, check=True)
+                self.set_status(f"Success!\nSaved at:\n{output_file}")
 
         except Exception as e:
-            self.set_status(f"خطأ أثناء المعالجة:\n{str(e)}")
+            self.set_status(f"Error:\n{str(e)}")
 
     def scan_file_to_gallery(self, file_path):
         try:
