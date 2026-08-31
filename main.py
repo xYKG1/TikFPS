@@ -1,4 +1,5 @@
 import os
+import subprocess
 import threading
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
@@ -13,7 +14,7 @@ class TikFPSApp(App):
         self.selected_video = None
         layout = BoxLayout(orientation='vertical', padding=20, spacing=20)
         
-        # استخدام إنجليزية واضحة لتجنب مشكلة الخطوط والمربعات
+        # نصوص بالإنجليزية لضمان ظهور الخطوط بدون مربعات
         self.label = Label(
             text="TikFPS\nSelect a video to process",
             font_size='16sp',
@@ -77,9 +78,9 @@ class TikFPSApp(App):
             return
         
         self.label.text = "Processing video...\nPlease wait"
-        threading.Thread(target=self.run_ffmpeg_native).start()
+        threading.Thread(target=self.run_ffmpeg).start()
 
-    def run_ffmpeg_native(self):
+    def run_ffmpeg(self):
         try:
             if platform == 'android':
                 from android.storage import primary_external_storage_path
@@ -90,23 +91,26 @@ class TikFPSApp(App):
             os.makedirs(storage_dir, exist_ok=True)
             output_file = os.path.join(storage_dir, f"patched_{os.path.basename(self.selected_video)}")
 
-            cmd = f"-y -i \"{self.selected_video}\" -c copy -bsf:v setts=ts=TS*2 -bsf:a setts=ts=TS*2 -video_track_timescale 90000 -brand isom \"{output_file}\""
+            cmd = [
+                "ffmpeg", "-y",
+                "-i", self.selected_video,
+                "-c", "copy",
+                "-bsf:v", "setts=ts=TS*2",
+                "-bsf:a", "setts=ts=TS*2",
+                "-video_track_timescale", "90000",
+                "-brand", "isom",
+                output_file
+            ]
 
-            if platform == 'android':
-                from jnius import autoclass
-                FFmpegKit = autoclass('com.ffmpegkit.FFmpegKit')
-                session = FFmpegKit.execute(cmd)
-                return_code = session.getReturnCode()
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr = process.communicate()
 
-                if return_code.isValueSuccess():
+            if process.returncode == 0:
+                if platform == 'android':
                     self.scan_file_to_gallery(output_file)
-                    self.set_status(f"Success!\nSaved in Downloads:\n{os.path.basename(output_file)}")
-                else:
-                    self.set_status(f"FFmpeg Failed with code: {return_code}")
+                self.set_status(f"Success!\nSaved in Downloads:\n{os.path.basename(output_file)}")
             else:
-                import subprocess
-                subprocess.run(f"ffmpeg {cmd}", shell=True, check=True)
-                self.set_status(f"Success!\nSaved at:\n{output_file}")
+                self.set_status(f"FFmpeg Error:\n{stderr.decode('utf-8')[:150]}")
 
         except Exception as e:
             self.set_status(f"Error:\n{str(e)}")
