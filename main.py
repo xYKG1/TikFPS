@@ -1,7 +1,6 @@
 import os
 import sys
 import threading
-import subprocess
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -79,47 +78,35 @@ class TikFPSApp(App):
             return
         
         self.label.text = "Processing Video...\nPlease wait."
-        threading.Thread(target=self.run_ffmpeg_command).start()
+        threading.Thread(target=self.run_native_ffmpeg).start()
 
-    def run_ffmpeg_command(self):
+    def run_native_ffmpeg(self):
         try:
-            if not os.path.exists(self.selected_video):
-                self.set_status("Error: Input file not found!")
-                return
-
             if platform == 'android':
                 from android.storage import primary_external_storage_path
                 storage_dir = os.path.join(primary_external_storage_path(), 'Download')
             else:
                 storage_dir = os.path.dirname(self.selected_video)
 
-            if not os.path.exists(storage_dir):
-                os.makedirs(storage_dir, exist_ok=True)
-
+            os.makedirs(storage_dir, exist_ok=True)
             output_file = os.path.join(storage_dir, f"patched_{os.path.basename(self.selected_video)}")
 
-            # إعداد مسار وثنائي ffmpeg للنظام أو تنفيذ الأمر البرمجي
-            cmd = [
-                'ffmpeg', '-y',
-                '-i', self.selected_video,
-                '-c', 'copy',
-                '-bsf:v', 'setts=ts=TS*2',
-                '-bsf:a', 'setts=ts=TS*2',
-                '-video_track_timescale', '90000',
-                '-brand', 'isom',
-                output_file
-            ]
+            # أمر FFmpeg المطلوب كـ string
+            cmd_str = f"-y -i \"{self.selected_video}\" -c copy -bsf:v setts=ts=TS*2 -bsf:a setts=ts=TS*2 -video_track_timescale 90000 -brand isom \"{output_file}\""
 
-            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
-            stdout, stderr = process.communicate()
-
-            if process.returncode == 0:
-                if platform == 'android':
+            if platform == 'android':
+                from jnius import autoclass
+                FFmpegKit = autoclass('com.ffmpegkit.FFmpegKit')
+                ReturnCode = autoclass('com.ffmpegkit.ReturnCode')
+                
+                session = FFmpegKit.execute(cmd_str)
+                if ReturnCode.isSuccess(session.getReturnCode()):
                     self.scan_file_to_gallery(output_file)
-                self.set_status(f"Success!\nSaved to Gallery/Downloads:\n{os.path.basename(output_file)}")
+                    self.set_status(f"Success!\nSaved to Downloads:\n{os.path.basename(output_file)}")
+                else:
+                    self.set_status(f"FFmpeg Execution Failed!\nCode: {session.getReturnCode()}")
             else:
-                # في حال تعذر تنفيذ الثنائي المباشر يتم إظهار الخطأ الدقيق لتصحيح المسار
-                self.set_status(f"FFmpeg Error:\n{stderr.decode('utf-8', errors='ignore')[-200:]}")
+                self.set_status("Desktop simulation completed.")
 
         except Exception as e:
             self.set_status(f"Error: {str(e)}")
@@ -131,12 +118,7 @@ class TikFPSApp(App):
             MediaScannerConnection = autoclass('android.media.MediaScannerConnection')
             
             activity = PythonActivity.mActivity
-            MediaScannerConnection.scanFile(
-                activity,
-                [file_path],
-                None,
-                None
-            )
+            MediaScannerConnection.scanFile(activity, [file_path], None, None)
         except Exception as e:
             print(f"MediaScanner Error: {e}")
 
