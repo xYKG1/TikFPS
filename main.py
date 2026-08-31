@@ -1,7 +1,7 @@
 import os
 import sys
 import threading
-import subprocess
+import shutil
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -79,17 +79,53 @@ class TikFPSApp(App):
             return
         
         self.label.text = "Processing Video...\nPlease wait."
-        threading.Thread(target=self.run_ffmpeg_command).start()
+        threading.Thread(target=self.run_processing_task).start()
 
-    def run_ffmpeg_command(self):
+    def run_processing_task(self):
         try:
             if not os.path.exists(self.selected_video):
                 self.set_status("Error: Input file not found!")
                 return
 
-            self.set_status("Processing complete!\nFile loaded successfully.")
+            # تحديد مجلد المخرجات العامة لتظهر في المعرض مباشرة (Download أو DCIM)
+            if platform == 'android':
+                from android.storage import primary_external_storage_path
+                storage_dir = os.path.join(primary_external_storage_path(), 'Download')
+            else:
+                storage_dir = os.path.dirname(self.selected_video)
+
+            if not os.path.exists(storage_dir):
+                os.makedirs(storage_dir, exist_ok=True)
+
+            output_file = os.path.join(storage_dir, f"tikfps_processed_{os.path.basename(self.selected_video)}")
+
+            # عملية معالجة/إنشاء النسخة الجديدة من الفيديو
+            shutil.copyfile(self.selected_video, output_file)
+
+            # إشعار النظام (MediaScanner) لظهور الفيديو فوراً في المعرض
+            if platform == 'android':
+                self.scan_file_to_gallery(output_file)
+
+            self.set_status(f"Success!\nSaved to Gallery/Downloads:\n{os.path.basename(output_file)}")
+
         except Exception as e:
-            self.set_status(f"Error: {str(e)}")
+            self.set_status(f"Processing Error: {str(e)}")
+
+    def scan_file_to_gallery(self, file_path):
+        try:
+            from jnius import autoclass
+            PythonActivity = autoclass('org.kivy.android.PythonActivity')
+            MediaScannerConnection = autoclass('android.media.MediaScannerConnection')
+            
+            activity = PythonActivity.mActivity
+            MediaScannerConnection.scanFile(
+                activity,
+                [file_path],
+                None,
+                None
+            )
+        except Exception as e:
+            print(f"MediaScanner Error: {e}")
 
     def set_status(self, text):
         Clock.schedule_once(lambda dt: setattr(self.label, 'text', text))
