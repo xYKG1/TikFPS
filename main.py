@@ -16,37 +16,19 @@ from kivy.uix.textinput import TextInput
 from plyer import filechooser
 from kivy.utils import platform
 
-# مفتاح سري لتوليد وترخيص المفاتيح بأمان
+# مفتاح سري موحد وثابت
 SECRET_SALT = 'TikFPS_Secret_Key_2026_Secure'
 
 
 def get_device_request_code():
-  """توليد كود فريد خاص بالجهاز بناءً على خصائصه"""
-  try:
-    if platform.system() == 'Android':
-      from jnius import autoclass
-
-      VERSION = autoclass('android.os.Build$VERSION')
-      board = autoclass('android.os.Build').BOARD
-      brand = autoclass('android.os.Build').BRAND
-      device_id = f'{brand}-{board}-{VERSION.SDK_INT}'
-    else:
-      device_id = (
-          platform.node()
-          + platform.processor()
-          + platform.machine()
-          + str(os.getuid() if hasattr(os, 'getuid') else 1000)
-      )
-  except Exception:
-    device_id = 'TikFPS_Default_Device_2026'
-
-  hash_object = hashlib.sha256((device_id + SECRET_SALT).encode('utf-8'))
+  # جعل كود الجهاز ثابت وموحد لتجنب اختلاف القراءات بين النظام والسكربت
+  base_id = 'TikFPS_Client_Device_ID_999'
+  hash_object = hashlib.sha256((base_id + SECRET_SALT).encode('utf-8'))
   full_hash = hash_object.hexdigest().upper()
   return f'{full_hash[:4]}-{full_hash[4:8]}'
 
 
 def verify_activation_key(request_code, entered_key):
-  """التحقق من صحة المفتاح المدخل مع تنظيف المدخلات تماماً"""
   clean_request = request_code.strip().upper()
   clean_key = entered_key.strip().upper()
 
@@ -62,10 +44,8 @@ class ActivationScreen(Screen):
 
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
-
     root_layout = FloatLayout()
 
-    # جلب مسار الخلفية المطلق
     current_dir = os.path.dirname(os.path.abspath(__file__))
     bg_path = os.path.join(current_dir, 'bg.png')
 
@@ -88,7 +68,6 @@ class ActivationScreen(Screen):
     )
     content_layout.bind(minimum_height=content_layout.setter('height'))
 
-    # عنوان التطبيق
     content_layout.add_widget(
         Label(
             text='TikFPS - Activation',
@@ -102,7 +81,6 @@ class ActivationScreen(Screen):
         )
     )
 
-    # كود الجهاز
     self.device_code = get_device_request_code()
     content_layout.add_widget(
         Label(
@@ -116,7 +94,6 @@ class ActivationScreen(Screen):
         )
     )
 
-    # معلومات الدفع
     content_layout.add_widget(
         Label(
             text=(
@@ -131,7 +108,6 @@ class ActivationScreen(Screen):
         )
     )
 
-    # حقل إدخال المفتاح
     self.key_input = TextInput(
         hint_text='Enter Activation Key Here',
         multiline=False,
@@ -145,7 +121,6 @@ class ActivationScreen(Screen):
     )
     content_layout.add_widget(self.key_input)
 
-    # زر التفعيل
     btn_activate = Button(
         text='Activate App',
         size_hint_y=None,
@@ -159,7 +134,6 @@ class ActivationScreen(Screen):
     btn_activate.bind(on_press=self.validate_key)
     content_layout.add_widget(btn_activate)
 
-    # رسالة الحالة
     self.status_label = Label(
         text='',
         color=(1, 0.3, 0.3, 1),
@@ -179,12 +153,10 @@ class ActivationScreen(Screen):
       self.status_label.text = 'Activation Successful!'
       self.status_label.color = (0, 1, 0.4, 1)
 
-      # حفظ الترخيص محلياً
       current_dir = os.path.dirname(os.path.abspath(__file__))
       with open(os.path.join(current_dir, 'license.key'), 'w') as f:
         f.write(entered_key.strip().upper())
 
-      # الانتقال لشاشة أداة الفيديوهات الأصلية
       App.get_running_app().root.current = 'main_app'
     else:
       self.status_label.text = 'Invalid Key, Please Try Again!'
@@ -192,14 +164,12 @@ class ActivationScreen(Screen):
 
 
 class MainAppScreen(Screen):
-  """شاشة أداة الفيديوهات الأصلية الخاصة بك بعد التفعيل"""
 
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
     self.selected_video = None
     layout = BoxLayout(orientation='vertical', padding=20, spacing=20)
 
-    # نصوص الإنجليزية لضمان ظهور الخطوط بدون مربعات
     self.label = Label(
         text='TikFPS - Activated\nSelect a video to process',
         font_size='16sp',
@@ -224,7 +194,6 @@ class MainAppScreen(Screen):
     btn_process.bind(on_release=self.process_video)
     layout.add_widget(btn_process)
 
-    # زر إضافي لإقفال التطبيق أو إعادة اختبار شاشة التفعيل إذا أردت
     btn_lock = Button(
         text='Lock / Re-check License',
         background_color=(0.4, 0.1, 0.1, 1),
@@ -339,6 +308,9 @@ class MainAppScreen(Screen):
       MediaScannerConnection.scanFile(activity, [file_path], None, None)
     except Exception as e:
       print(f'MediaScanner Error: {e}')
+
+  def set_status(text):
+    pass
 
   def set_status(self, text):
     Clock.schedule_once(lambda dt: setattr(self.label, 'text', text))
