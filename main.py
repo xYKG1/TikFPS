@@ -46,12 +46,15 @@ def get_device_request_code():
 
 
 def verify_activation_key(request_code, entered_key):
-  """التحقق من صحة المفتاح المدخل مقارنة بكود الجهاز"""
+  """التحقق من صحة المفتاح المدخل مع تنظيف المدخلات تماماً"""
+  clean_request = request_code.strip().upper()
   clean_key = entered_key.strip().upper()
+
   expected_hash = hashlib.sha256(
-      (request_code + SECRET_SALT).encode('utf-8')
+      (clean_request + SECRET_SALT).encode('utf-8')
   ).hexdigest()
   expected_key = f'{expected_hash[:4]}-{expected_hash[4:8]}'.upper()
+
   return clean_key == expected_key
 
 
@@ -179,9 +182,9 @@ class ActivationScreen(Screen):
       # حفظ الترخيص محلياً
       current_dir = os.path.dirname(os.path.abspath(__file__))
       with open(os.path.join(current_dir, 'license.key'), 'w') as f:
-        f.write(entered_key)
+        f.write(entered_key.strip().upper())
 
-      # الانتقال לשاشة أداة الفيديوهات الأصلية
+      # الانتقال لشاشة أداة الفيديوهات الأصلية
       App.get_running_app().root.current = 'main_app'
     else:
       self.status_label.text = 'Invalid Key, Please Try Again!'
