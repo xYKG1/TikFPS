@@ -2,7 +2,9 @@ import hashlib
 import os
 import platform
 import subprocess
+import threading
 from kivy.app import App
+from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -11,6 +13,8 @@ from kivy.uix.image import Image
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen, ScreenManager
 from kivy.uix.textinput import TextInput
+from plyer import filechooser
+from kivy.utils import platform
 
 # مفتاح سري لتوليد وترخيص المفاتيح بأمان
 SECRET_SALT = 'TikFPS_Secret_Key_2026_Secure'
@@ -172,12 +176,12 @@ class ActivationScreen(Screen):
       self.status_label.text = 'Activation Successful!'
       self.status_label.color = (0, 1, 0.4, 1)
 
-      # حفظ ملف الترخيص محلياً لكي لا يطلب التفعيل مرة أخرى
+      # حفظ الترخيص محلياً
       current_dir = os.path.dirname(os.path.abspath(__file__))
       with open(os.path.join(current_dir, 'license.key'), 'w') as f:
         f.write(entered_key)
 
-      # الانتقال لشاشة التطبيق الرئيسية بعد ثانية
+      # الانتقال לשاشة أداة الفيديوهات الأصلية
       App.get_running_app().root.current = 'main_app'
     else:
       self.status_label.text = 'Invalid Key, Please Try Again!'
@@ -185,28 +189,163 @@ class ActivationScreen(Screen):
 
 
 class MainAppScreen(Screen):
-  """شاشة التطبيق الرئيسية التي تظهر بعد التفعيل الناجح"""
+  """شاشة أداة الفيديوهات الأصلية الخاصة بك بعد التفعيل"""
 
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
-    layout = BoxLayout(orientation='vertical', padding=30, spacing=20)
-    layout.add_widget(
-        Label(
-            text='Welcome to TikFPS Studio!\nApp is Fully Activated.',
-            font_size='20sp',
-            halign='center',
-            markup=True,
-        )
-    )
+    self.selected_video = None
+    layout = BoxLayout(orientation='vertical', padding=20, spacing=20)
 
-    btn_back = Button(
-        text='Settings / Exit',
-        size_hint_y=None,
-        height=50,
-        background_color=(0.2, 0.2, 0.2, 1),
+    # نصوص الإنجليزية لضمان ظهور الخطوط بدون مربعات
+    self.label = Label(
+        text='TikFPS - Activated\nSelect a video to process',
+        font_size='16sp',
+        halign='center',
+        valign='middle',
     )
-    layout.add_widget(btn_back)
+    layout.add_widget(self.label)
+
+    btn_select = Button(
+        text='1. Select Video',
+        background_color=(0.1, 0.3, 0.5, 1),
+        size_hint_y=0.25,
+    )
+    btn_select.bind(on_release=self.request_and_open)
+    layout.add_widget(btn_select)
+
+    btn_process = Button(
+        text='2. Process Video',
+        background_color=(0.1, 0.4, 0.1, 1),
+        size_hint_y=0.25,
+    )
+    btn_process.bind(on_release=self.process_video)
+    layout.add_widget(btn_process)
+
+    # زر إضافي لإقفال التطبيق أو إعادة اختبار شاشة التفعيل إذا أردت
+    btn_lock = Button(
+        text='Lock / Re-check License',
+        background_color=(0.4, 0.1, 0.1, 1),
+        size_hint_y=0.15,
+    )
+    btn_lock.bind(on_release=self.lock_app)
+    layout.add_widget(btn_lock)
+
     self.add_widget(layout)
+
+  def request_and_open(self, instance):
+    if platform == 'android':
+      try:
+        from android.permissions import Permission, request_permissions
+
+        request_permissions(
+            [
+                Permission.READ_EXTERNAL_STORAGE,
+                Permission.WRITE_EXTERNAL_STORAGE,
+            ],
+            self.on_permission_result,
+        )
+      except Exception as e:
+        self.open_gallery()
+    else:
+      self.open_gallery()
+
+  def on_permission_result(self, permissions, grant_results):
+    Clock.schedule_once(lambda dt: self.open_gallery(), 0.2)
+
+  def open_gallery(self, *args):
+    try:
+      filechooser.open_file(on_selection=self.on_video_selected)
+    except Exception as e:
+      self.label.text = f'Gallery Error: {str(e)}'
+
+  def on_video_selected(self, selection):
+    if selection and len(selection) > 0:
+      self.selected_video = selection[0]
+      Clock.schedule_once(self.update_ui)
+
+  def update_ui(self, dt):
+    filename = os.path.basename(self.selected_video)
+    self.label.text = f'Selected File:\n{filename}'
+
+  def process_video(self, instance):
+    if not self.selected_video:
+      self.label.text = 'Please select a video first!'
+      return
+
+    self.label.text = 'Processing video...\nPlease wait'
+    threading.Thread(target=self.run_ffmpeg).start()
+
+  def run_ffmpeg(self):
+    try:
+      if platform == 'android':
+        from android.storage import primary_external_storage_path
+
+        storage_dir = os.path.join(
+            primary_external_storage_path(), 'Download'
+        )
+      else:
+        storage_dir = os.path.dirname(self.selected_video)
+
+      os.makedirs(storage_dir, exist_ok=True)
+      output_file = os.path.join(
+          storage_dir, f'patched_{os.path.basename(self.selected_video)}'
+      )
+
+      cmd = [
+          'ffmpeg',
+          '-y',
+          '-i',
+          self.selected_video,
+          '-c',
+          'copy',
+          '-bsf:v',
+          'setts=ts=TS*2',
+          '-bsf:a',
+          'setts=ts=TS*2',
+          '-video_track_timescale',
+          '90000',
+          '-brand',
+          'isom',
+          output_file,
+      ]
+
+      process = subprocess.Popen(
+          cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+      )
+      stdout, stderr = process.communicate()
+
+      if process.returncode == 0:
+        if platform == 'android':
+          self.scan_file_to_gallery(output_file)
+        self.set_status(
+            f'Success!\nSaved in Downloads:\n{os.path.basename(output_file)}'
+        )
+      else:
+        self.set_status(f"FFmpeg Error:\n{stderr.decode('utf-8')[:150]}")
+
+    except Exception as e:
+      self.set_status(f'Error:\n{str(e)}')
+
+  def scan_file_to_gallery(self, file_path):
+    try:
+      from jnius import autoclass
+
+      PythonActivity = autoclass('org.kivy.android.PythonActivity')
+      MediaScannerConnection = autoclass('android.media.MediaScannerConnection')
+      activity = PythonActivity.mActivity
+      MediaScannerConnection.scanFile(activity, [file_path], None, None)
+    except Exception as e:
+      print(f'MediaScanner Error: {e}')
+
+  def set_status(self, text):
+    Clock.schedule_once(lambda dt: setattr(self.label, 'text', text))
+
+  def lock_app(self, instance):
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    license_path = os.path.join(current_dir, 'license.key')
+    if os.path.exists(license_path):
+      os.remove(license_path)
+    App.get_running_app().root.current = 'activation'
 
 
 class TikFPSApp(App):
