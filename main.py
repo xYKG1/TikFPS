@@ -2,6 +2,7 @@ import hashlib
 import os
 import subprocess
 import threading
+import uuid
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.core.window import Window
@@ -19,7 +20,18 @@ SECRET_SALT = 'TIKFPS2026'
 
 
 def get_device_request_code():
-  return '913D-E7B0'
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  id_path = os.path.join(current_dir, 'device.id')
+  if os.path.exists(id_path):
+    with open(id_path, 'r') as f:
+      return f.read().strip()
+  else:
+    # توليد كود فريد ومميز لكل جهاز يثبت التطبيق
+    unique_id = uuid.uuid4().hex.upper()
+    device_code = f'{unique_id[:4]}-{unique_id[4:8]}'
+    with open(id_path, 'w') as f:
+      f.write(device_code)
+    return device_code
 
 
 def verify_activation_key(request_code, entered_key):
@@ -154,7 +166,6 @@ class ActivationScreen(Screen):
 
       App.get_running_app().root.current = 'main_app'
     else:
-      # رسالة خطأ آمنة لا تكشف المفتاح للزبون
       self.status_label.text = 'Invalid Key, Please Try Again!'
       self.status_label.color = (1, 0.3, 0.3, 1)
 
@@ -328,7 +339,9 @@ class TikFPSApp(App):
     if os.path.exists(license_path):
       with open(license_path, 'r') as f:
         saved_key = f.read().strip()
-        is_valid = verify_activation_key('913D-E7B0', saved_key)
+        # التحقق بناءً على كود الجهاز الفريد الخاص بالهاتف الحالي
+        device_code = get_device_request_code()
+        is_valid = verify_activation_key(device_code, saved_key)
         if is_valid:
           is_activated = True
 
