@@ -1,5 +1,6 @@
 import hashlib
 import os
+import subprocess
 import threading
 from kivy.app import App
 from kivy.clock import Clock
@@ -29,7 +30,7 @@ def verify_activation_key(request_code, entered_key):
   full_hash = hashlib.sha256(combined.encode('utf-8')).hexdigest().upper()
   expected_key = f'{full_hash[:4]}-{full_hash[4:8]}'
 
-  return clean_key == expected_key, expected_key
+  return clean_key == expected_key
 
 
 class ActivationScreen(Screen):
@@ -141,9 +142,7 @@ class ActivationScreen(Screen):
 
   def validate_key(self, instance):
     entered_key = self.key_input.text
-    is_valid, correct_key = verify_activation_key(
-        self.device_code, entered_key
-    )
+    is_valid = verify_activation_key(self.device_code, entered_key)
 
     if is_valid:
       self.status_label.text = 'Activation Successful!'
@@ -155,10 +154,8 @@ class ActivationScreen(Screen):
 
       App.get_running_app().root.current = 'main_app'
     else:
-      # إظهار المفتاح الصحيح على الشاشة لنكتشف سبب الاختلاف فوراً
-      self.status_label.text = (
-          f'Invalid! Expected: {correct_key}\nEntered: {entered_key}'
-      )
+      # رسالة خطأ آمنة لا تكشف المفتاح للزبون
+      self.status_label.text = 'Invalid Key, Please Try Again!'
       self.status_label.color = (1, 0.3, 0.3, 1)
 
 
@@ -308,8 +305,6 @@ class MainAppScreen(Screen):
     except Exception as e:
       print(f'MediaScanner Error: {e}')
 
-    pass
-
   def set_status(self, text):
     Clock.schedule_once(lambda dt: setattr(self.label, 'text', text))
 
@@ -333,7 +328,7 @@ class TikFPSApp(App):
     if os.path.exists(license_path):
       with open(license_path, 'r') as f:
         saved_key = f.read().strip()
-        is_valid, _ = verify_activation_key('913D-E7B0', saved_key)
+        is_valid = verify_activation_key('913D-E7B0', saved_key)
         if is_valid:
           is_activated = True
 
