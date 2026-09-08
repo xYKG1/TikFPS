@@ -14,12 +14,10 @@ from kivy.uix.textinput import TextInput
 from plyer import filechooser
 from kivy.utils import platform
 
-# مفتاح سري موحد
 SECRET_SALT = 'TIKFPS2026'
 
 
 def get_device_request_code():
-  # كود ثابت يظهر للمستخدم
   return '913D-E7B0'
 
 
@@ -27,12 +25,11 @@ def verify_activation_key(request_code, entered_key):
   clean_request = request_code.strip().upper()
   clean_key = entered_key.strip().upper()
 
-  # المعادلة المباشرة: الهاش المبني حصرياً على كود الجهاز
   combined = clean_request + SECRET_SALT
   full_hash = hashlib.sha256(combined.encode('utf-8')).hexdigest().upper()
   expected_key = f'{full_hash[:4]}-{full_hash[4:8]}'
 
-  return clean_key == expected_key
+  return clean_key == expected_key, expected_key
 
 
 class ActivationScreen(Screen):
@@ -133,8 +130,8 @@ class ActivationScreen(Screen):
         text='',
         color=(1, 0.3, 0.3, 1),
         size_hint_y=None,
-        height=30,
-        font_size='14sp',
+        height=50,
+        font_size='13sp',
         halign='center',
     )
     content_layout.add_widget(self.status_label)
@@ -144,7 +141,11 @@ class ActivationScreen(Screen):
 
   def validate_key(self, instance):
     entered_key = self.key_input.text
-    if verify_activation_key(self.device_code, entered_key):
+    is_valid, correct_key = verify_activation_key(
+        self.device_code, entered_key
+    )
+
+    if is_valid:
       self.status_label.text = 'Activation Successful!'
       self.status_label.color = (0, 1, 0.4, 1)
 
@@ -154,7 +155,10 @@ class ActivationScreen(Screen):
 
       App.get_running_app().root.current = 'main_app'
     else:
-      self.status_label.text = 'Invalid Key, Please Try Again!'
+      # إظهار المفتاح الصحيح على الشاشة لنكتشف سبب الاختلاف فوراً
+      self.status_label.text = (
+          f'Invalid! Expected: {correct_key}\nEntered: {entered_key}'
+      )
       self.status_label.color = (1, 0.3, 0.3, 1)
 
 
@@ -304,7 +308,6 @@ class MainAppScreen(Screen):
     except Exception as e:
       print(f'MediaScanner Error: {e}')
 
-  def set_status(self, text):
     pass
 
   def set_status(self, text):
@@ -330,7 +333,8 @@ class TikFPSApp(App):
     if os.path.exists(license_path):
       with open(license_path, 'r') as f:
         saved_key = f.read().strip()
-        if verify_activation_key('913D-E7B0', saved_key):
+        is_valid, _ = verify_activation_key('913D-E7B0', saved_key)
+        if is_valid:
           is_activated = True
 
     sm.add_widget(ActivationScreen(name='activation'))
