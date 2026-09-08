@@ -1,7 +1,5 @@
 import hashlib
 import os
-import platform
-import subprocess
 import threading
 from kivy.app import App
 from kivy.clock import Clock
@@ -16,26 +14,23 @@ from kivy.uix.textinput import TextInput
 from plyer import filechooser
 from kivy.utils import platform
 
-# مفتاح سري موحد وثابت
-SECRET_SALT = 'TikFPS_Secret_Key_2026_Secure'
+# مفتاح سري موحد
+SECRET_SALT = 'TIKFPS2026'
 
 
 def get_device_request_code():
-  # جعل كود الجهاز ثابت وموحد لتجنب اختلاف القراءات بين النظام والسكربت
-  base_id = 'TikFPS_Client_Device_ID_999'
-  hash_object = hashlib.sha256((base_id + SECRET_SALT).encode('utf-8'))
-  full_hash = hash_object.hexdigest().upper()
-  return f'{full_hash[:4]}-{full_hash[4:8]}'
+  # كود ثابت يظهر للمستخدم
+  return '913D-E7B0'
 
 
 def verify_activation_key(request_code, entered_key):
   clean_request = request_code.strip().upper()
   clean_key = entered_key.strip().upper()
 
-  expected_hash = hashlib.sha256(
-      (clean_request + SECRET_SALT).encode('utf-8')
-  ).hexdigest()
-  expected_key = f'{expected_hash[:4]}-{expected_hash[4:8]}'.upper()
+  # المعادلة المباشرة: الهاش المبني حصرياً على كود الجهاز
+  combined = clean_request + SECRET_SALT
+  full_hash = hashlib.sha256(combined.encode('utf-8')).hexdigest().upper()
+  expected_key = f'{full_hash[:4]}-{full_hash[4:8]}'
 
   return clean_key == expected_key
 
@@ -309,7 +304,7 @@ class MainAppScreen(Screen):
     except Exception as e:
       print(f'MediaScanner Error: {e}')
 
-  def set_status(text):
+  def set_status(self, text):
     pass
 
   def set_status(self, text):
@@ -335,8 +330,7 @@ class TikFPSApp(App):
     if os.path.exists(license_path):
       with open(license_path, 'r') as f:
         saved_key = f.read().strip()
-        dummy_screen = ActivationScreen()
-        if verify_activation_key(dummy_screen.device_code, saved_key):
+        if verify_activation_key('913D-E7B0', saved_key):
           is_activated = True
 
     sm.add_widget(ActivationScreen(name='activation'))
