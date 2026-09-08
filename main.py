@@ -26,7 +26,6 @@ def get_device_request_code():
     with open(id_path, 'r') as f:
       return f.read().strip()
   else:
-    # توليد كود فريد ومميز لكل جهاز يثبت التطبيق
     unique_id = uuid.uuid4().hex.upper()
     device_code = f'{unique_id[:4]}-{unique_id[4:8]}'
     with open(id_path, 'w') as f:
@@ -175,11 +174,11 @@ class MainAppScreen(Screen):
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
     self.selected_video = None
-    layout = BoxLayout(orientation='vertical', padding=20, spacing=20)
+    layout = BoxLayout(orientation='vertical', padding=30, spacing=25)
 
     self.label = Label(
         text='TikFPS - Activated\nSelect a video to process',
-        font_size='16sp',
+        font_size='18sp',
         halign='center',
         valign='middle',
     )
@@ -188,26 +187,22 @@ class MainAppScreen(Screen):
     btn_select = Button(
         text='1. Select Video',
         background_color=(0.1, 0.3, 0.5, 1),
-        size_hint_y=0.25,
+        size_hint_y=0.3,
+        font_size='16sp',
+        bold=True,
     )
     btn_select.bind(on_release=self.request_and_open)
     layout.add_widget(btn_select)
 
     btn_process = Button(
         text='2. Process Video',
-        background_color=(0.1, 0.4, 0.1, 1),
-        size_hint_y=0.25,
+        background_color=(0.0, 0.7, 0.3, 1),
+        size_hint_y=0.3,
+        font_size='16sp',
+        bold=True,
     )
     btn_process.bind(on_release=self.process_video)
     layout.add_widget(btn_process)
-
-    btn_lock = Button(
-        text='Lock / Re-check License',
-        background_color=(0.4, 0.1, 0.1, 1),
-        size_hint_y=0.15,
-    )
-    btn_lock.bind(on_release=self.lock_app)
-    layout.add_widget(btn_lock)
 
     self.add_widget(layout)
 
@@ -319,13 +314,6 @@ class MainAppScreen(Screen):
   def set_status(self, text):
     Clock.schedule_once(lambda dt: setattr(self.label, 'text', text))
 
-  def lock_app(self, instance):
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    license_path = os.path.join(current_dir, 'license.key')
-    if os.path.exists(license_path):
-      os.remove(license_path)
-    App.get_running_app().root.current = 'activation'
-
 
 class TikFPSApp(App):
 
@@ -339,7 +327,6 @@ class TikFPSApp(App):
     if os.path.exists(license_path):
       with open(license_path, 'r') as f:
         saved_key = f.read().strip()
-        # التحقق بناءً على كود الجهاز الفريد الخاص بالهاتف الحالي
         device_code = get_device_request_code()
         is_valid = verify_activation_key(device_code, saved_key)
         if is_valid:
