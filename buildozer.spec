@@ -6,6 +6,9 @@ source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,ttf,key,txt
 version = 0.1
 
+# (str) Icon of the application
+icon.filename = %(source.dir)s/icon.png
+
 requirements = python3==3.11.0,hostpython3==3.11.0,kivy==2.3.0,plyer,android,ffmpeg
 
 orientation = portrait
